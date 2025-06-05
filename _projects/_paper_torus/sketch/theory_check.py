@@ -1,8 +1,3 @@
-import os
-import sys
-
-sys.path.append(str(os.path.abspath(os.getcwd())))
-
 import numpy as np
 import matplotlib.pyplot as plt
 from spatial_geometry.utils import Utils

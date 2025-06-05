@@ -3,7 +3,7 @@ import numpy as np
 import os
 from spatial_geometry.utils import Utils
 import matplotlib.pyplot as plt
-from graph_mip import solve_graph_mip, multi_target_dijkstra
+from rnd_graph_mip import solve_graph_mip, multi_target_dijkstra
 
 np.set_printoptions(linewidth=2000, precision=2, suppress=True)
 

@@ -39,7 +39,7 @@ void loadPlannerStoarge(ob::PlannerDataStorage &datastorage, ob::PlannerData &da
 
 int main() {
     // Load YAML
-    YAML::Node config = YAML::LoadFile("../config/paper_r2s_prm_build.yaml");
+    YAML::Node config = YAML::LoadFile("../config/r2s_prm.yaml");
     double l1 = config["robot"]["l1"].as<double>();
     double l2 = config["robot"]["l2"].as<double>();
     auto rectangles = config["env"]["rectangles"];
@@ -51,15 +51,15 @@ int main() {
     const char *varrsrc = std::getenv("RSRC_DIR");
     std::string save_planner_graphml =
         std::string(varrsrc) + "/rnd_torus/" +
-        config["path_save_planner_data"].as<std::string>() + ".graphml";
+        config["save_planner_data"].as<std::string>() + ".graphml";
     std::string save_planner_bin =
         std::string(varrsrc) + "/rnd_torus/" +
-        config["path_save_planner_data_bin"].as<std::string>();
+        config["save_planner_data_bin"].as<std::string>();
     std::string save_start_goal =
         std::string(varrsrc) + "/rnd_torus/" +
-        config["path_save_start_goal"].as<std::string>() + ".csv";
+        config["save_start_goal"].as<std::string>() + ".csv";
     std::string save_path = std::string(varrsrc) + "/rnd_torus/" +
-                            config["path_save_path"].as<std::string>() + ".csv";
+                            config["save_path"].as<std::string>() + ".csv";
 
     // Robot setup
     PlanarRR robot(l1, l2);

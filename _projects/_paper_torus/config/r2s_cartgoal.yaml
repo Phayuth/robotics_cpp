@@ -21,6 +21,6 @@ bias: 0.05
 time_limit: 2.0
 simplify_solution: false
 
-path_save_planner_data: paper_r2s_constrained_planner_data
-path_save_start_goal: paper_r2s_constrained_start_goal
-path_save_path: paper_r2s_constrained_path
+save_planner_data: paper_r2s_cartgoal_planner_data
+save_start_goal: paper_r2s_cartgoal_start_goal
+save_path: paper_r2s_cartgoal_path

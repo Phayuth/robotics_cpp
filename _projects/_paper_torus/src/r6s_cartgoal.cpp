@@ -63,7 +63,7 @@ class CartesianGoalRegion : public ob::GoalRegion {
 
 int main() {
     // read YAML configurations
-    YAML::Node config = YAML::LoadFile("../config/paper_r6s_constrained.yaml");
+    YAML::Node config = YAML::LoadFile("../config/r6s_cartgoal.yaml");
     double l1 = config["robot"]["l1"].as<double>();
     double l2 = config["robot"]["l2"].as<double>();
     double l3 = config["robot"]["l3"].as<double>();
@@ -84,12 +84,12 @@ int main() {
     const char *varrsrc = std::getenv("RSRC_DIR");
     std::string save_planner_graphml =
         std::string(varrsrc) + "/rnd_torus/" +
-        config["path_save_planner_data"].as<std::string>() + ".graphml";
+        config["save_planner_data"].as<std::string>() + ".graphml";
     std::string save_start_goal =
         std::string(varrsrc) + "/rnd_torus/" +
-        config["path_save_start_goal"].as<std::string>() + ".csv";
+        config["save_start_goal"].as<std::string>() + ".csv";
     std::string save_path = std::string(varrsrc) + "/rnd_torus/" +
-                            config["path_save_path"].as<std::string>() + ".csv";
+                            config["save_path"].as<std::string>() + ".csv";
 
     // Robot setup
     Planar6R robot(l1, l2, l3, l4, l5, l6);

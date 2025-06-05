@@ -79,7 +79,7 @@ int main() {
         ss.getSolutionPath().printAsMatrix(std::cout);
 
         const og::PathGeometric &path = ss.getSolutionPath();
-        savePathToFile(path, config["path_save_path"].as<std::string>() + ".csv");
+        savePathToFile(path, config["save_path"].as<std::string>() + ".csv");
     } else {
         std::cout << "No solution found." << std::endl;
     }

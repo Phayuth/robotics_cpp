@@ -11,31 +11,36 @@ include_directories("/usr/include/ompl-1.5")
 add_subdirectory("../../spatial_geometry" "${CMAKE_BINARY_DIR}/spatial_geometry")
 add_subdirectory("../../robot" "${CMAKE_BINARY_DIR}/robot")
 
-# so2 space
-add_executable(paper_so2s paper_so2s.cpp)
-target_link_libraries(paper_so2s PUBLIC ompl robot spatial_geometry yaml-cpp)
+# r2s space
+add_executable(r2s_altgoal src/r2s_altgoal.cpp)
+target_link_libraries(r2s_altgoal PUBLIC ompl robot spatial_geometry yaml-cpp)
 
-# ext goal case
-add_executable(paper_r2s_extsgoalset paper_r2s_extsgoalset.cpp)
-target_link_libraries(paper_r2s_extsgoalset PUBLIC ompl robot spatial_geometry yaml-cpp)
+add_executable(r2s_cartgoal src/r2s_cartgoal.cpp)
+target_link_libraries(r2s_cartgoal PUBLIC ompl robot spatial_geometry yaml-cpp)
 
-# r2 space
-add_executable(paper_r2s paper_r2s.cpp)
-target_link_libraries(paper_r2s PUBLIC ompl robot spatial_geometry yaml-cpp)
-
-
-# PRM build
 find_package(Boost REQUIRED COMPONENTS serialization)
-add_executable(paper_prm_build paper_r2s_prm_build.cpp)
-target_link_libraries(paper_prm_build PUBLIC ompl robot spatial_geometry yaml-cpp Boost::serialization)
+add_executable(r2s_prm src/r2s_prm.cpp)
+target_link_libraries(r2s_prm PUBLIC ompl robot spatial_geometry yaml-cpp Boost::serialization)
+
+add_executable(r2s_snggoal src/r2s_snggoal.cpp)
+target_link_libraries(r2s_snggoal PUBLIC ompl robot spatial_geometry yaml-cpp)
 
 
+# r6s space
+add_executable(r6s_altgoal src/r6s_altgoal.cpp)
+target_link_libraries(r6s_altgoal PUBLIC ompl robot spatial_geometry yaml-cpp)
 
-add_executable(paper_r6s paper_r6s.cpp)
-target_link_libraries(paper_r6s PUBLIC ompl robot spatial_geometry yaml-cpp)
+# add_executable(r6s_cartgoal_tsrrt src/r6s_cartgoal_tsrrt.cpp)
+# target_link_libraries(r6s_cartgoal_tsrrt PUBLIC ompl robot spatial_geometry yaml-cpp)
 
-add_executable(paper_r2s_constrained paper_r2s_constrained.cpp)
-target_link_libraries(paper_r2s_constrained PUBLIC ompl robot spatial_geometry yaml-cpp)
+add_executable(r6s_cartgoal src/r6s_cartgoal.cpp)
+target_link_libraries(r6s_cartgoal PUBLIC ompl robot spatial_geometry yaml-cpp)
 
-add_executable(paper_r6s_constrained paper_r6s_constrained.cpp)
-target_link_libraries(paper_r6s_constrained PUBLIC ompl robot spatial_geometry yaml-cpp)
+add_executable(r6s_snggoal src/r6s_snggoal.cpp)
+target_link_libraries(r6s_snggoal PUBLIC ompl robot spatial_geometry yaml-cpp)
+
+
+# so2 space
+add_executable(so2s_snggoal src/so2s_snggoal.cpp)
+target_link_libraries(so2s_snggoal PUBLIC ompl robot spatial_geometry yaml-cpp)
+
