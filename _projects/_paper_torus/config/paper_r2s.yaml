@@ -1,0 +1,23 @@
+robot:
+  l1: 2.0
+  l2: 2.0
+
+env:
+  rectangles:
+    - [-2.75, 1.0, 2.0, 1.0]
+    - [1.5, 2.0, 2.0, 1.0]
+
+qlimit: [6.28318530718, 6.28318530718] # 2 * PI
+
+qstart: [-3.14, 0.0]
+
+qgoal: [1.57, 0.0]
+
+range: 0.3
+bias: 0.05
+time_limit: 2.0
+simplify_solution: true
+
+path_save_planner_data: paper_r2s_planner_data
+path_save_start_goal: paper_r2s_start_goal
+path_save_path: paper_r2s_path
