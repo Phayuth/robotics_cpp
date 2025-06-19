@@ -4,7 +4,6 @@ from simulator.sim_planar_rr import RobotArm2DSimulator
 import numpy as np
 from rnd_task_map import PaperTorusIFAC2025
 import networkx as nx
-from rnd_task_map import PaperTorusIFAC2025
 
 
 class PlotterConfig:
