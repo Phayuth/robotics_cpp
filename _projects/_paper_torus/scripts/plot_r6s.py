@@ -24,17 +24,19 @@ def fig_r6s_altgoal():
 
 if __name__ == "__main__":
     while True:
-        print("1: fig_r6s_snggoal")
-        print("2: fig_r6s_cartgoal")
-        print("3: fig_r6s_altgoal")
-        print("0: exit")
+        func = [
+            fig_r6s_snggoal,
+            fig_r6s_cartgoal,
+            fig_r6s_altgoal,
+        ]
 
-        choice = input("Select an option: ")
-        if choice == "1":
-            fig_r6s_snggoal()
-        elif choice == "2":
-            fig_r6s_cartgoal()
-        elif choice == "3":
-            fig_r6s_altgoal()
-        elif choice == "0":
+        for i, f in enumerate(func, start=1):
+            print(f"{i}: {f.__name__}")
+
+        arg = input("Enter argument number (` to exit): ")
+
+        if arg == "`":
+            print("Exiting...")
             break
+        elif arg.isdigit() and 1 <= int(arg) <= len(func):
+            func[int(arg) - 1]()

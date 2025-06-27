@@ -94,6 +94,94 @@ def determine_quadrant():
     print(b)
 
 
+def find_number_of_feasible_alternatives():
+    """
+    Find the number of alternative configurations for a given point in the toroidal space.
+    """
+    lmt2 = np.array(
+        [
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+        ]
+    )
+    lmt3 = np.array(
+        [
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+        ]
+    )
+    lmt4 = np.array(
+        [
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+        ]
+    )
+    lmt5 = np.array(
+        [
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+        ]
+    )
+    lmt6 = np.array(
+        [
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+            [-2 * np.pi, 2 * np.pi],
+        ]
+    )
+
+    q2 = np.array([1, 1]).reshape(2, 1)
+    q3 = np.array([1, 1, 1]).reshape(3, 1)
+    q4 = np.array([1, 1, 1, 1]).reshape(4, 1)
+    q5 = np.array([1, 1, 1, 1, 1]).reshape(5, 1)
+    q6 = np.array([1, 1, 1, 1, 1, 1]).reshape(6, 1)
+
+    print(
+        "2D fesible #q is :",
+        Utils.find_alt_config(q2, lmt2).shape[1],
+    )
+    print(
+        "3D fesible #q is :",
+        Utils.find_alt_config(q3, lmt3).shape[1],
+    )
+    print(
+        "4D fesible #q is :",
+        Utils.find_alt_config(q4, lmt4).shape[1],
+    )
+    print(
+        "5D fesible #q is :",
+        Utils.find_alt_config(q5, lmt5).shape[1],
+    )
+    print(
+        "6D fesible #q is :",
+        Utils.find_alt_config(q6, lmt6).shape[1],
+    )
+
+
 if __name__ == "__main__":
-    # sampling_test()
-    determine_quadrant()
+    while True:
+        func = [
+            sampling_test,
+            determine_quadrant,
+            find_number_of_feasible_alternatives,
+        ]
+
+        for i, f in enumerate(func, start=1):
+            print(f"{i}: {f.__name__}")
+
+        arg = input("Enter argument number (` to exit): ")
+
+        if arg == "`":
+            print("Exiting...")
+            break
+        elif arg.isdigit() and 1 <= int(arg) <= len(func):
+            func[int(arg) - 1]()

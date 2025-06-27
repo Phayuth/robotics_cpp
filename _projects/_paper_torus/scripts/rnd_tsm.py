@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import random
 
 
-def tsm():
+def travelling_sale_man_TSM():
     # ------------------------
     # 1. Define city coordinates
     # ------------------------
@@ -117,8 +117,7 @@ def tsm():
     plt.show()
 
 
-def gtsm():
-
+def generalized_travelling_salesman_GTSM():
     # --------------------------
     # 1. Generate cities & clusters
     # --------------------------
@@ -246,6 +245,7 @@ def gtsm():
         if i == current:
             tour.append((i, j))
             current = j
+    tour.append((tour[-1][1], tour[0][0]))
     print("Tour order:", tour)
 
     # Plot
@@ -277,19 +277,19 @@ def gtsm():
 
 
 if __name__ == "__main__":
-    print("Traveling Salesman Problem (TSP) Solution")
+    while True:
+        func = [
+            travelling_sale_man_TSM,
+            generalized_travelling_salesman_GTSM,
+        ]
 
-    arg = input(
-        "Select an option:\n"
-        "0: Exit\n"
-        "1: Solve TSP\n"
-        "2: Solve GTSP (Generalized TSP)\n"
-        "Enter your choice: "
-    )
-    if arg == "0":
-        print("Exiting...")
-        exit()
-    if arg == "1":
-        tsm()
-    if arg == "2":
-        gtsm()
+        for i, f in enumerate(func, start=1):
+            print(f"{i}: {f.__name__}")
+
+        arg = input("Enter argument number (` to exit): ")
+
+        if arg == "`":
+            print("Exiting...")
+            break
+        elif arg.isdigit() and 1 <= int(arg) <= len(func):
+            func[int(arg) - 1]()

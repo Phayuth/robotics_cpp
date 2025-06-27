@@ -55,6 +55,24 @@ def jacobian_three_joints():
     return J
 
 
+def jacobian_three_joints_numpy(thetas, link_lengths):
+    thetas = np.asarray(thetas)
+    link_lengths = np.asarray(link_lengths)
+
+    cum_thetas = np.cumsum(thetas)
+    sin_t = np.sin(cum_thetas)
+    cos_t = np.cos(cum_thetas)
+
+    J = np.zeros((3, 3))
+    J[2, :] = 1
+
+    for i in range(3):
+        J[0, i] = -np.sum(link_lengths[i:] * sin_t[i:])
+        J[1, i] = np.sum(link_lengths[i:] * cos_t[i:])
+
+    return J
+
+
 def jacobian_six_joints():
     """
     Computes the Jacobian for a six-joint manipulator.
@@ -113,6 +131,31 @@ def jacobian_six_joints_numpy(thetas, link_lengths):
     return J
 
 
+def jacobian_three_joints_unit_test():
+    """
+    Unit test for the Jacobian of a three-joint manipulator.
+    """
+    thetas = [0.0, 0.0, 0.0]
+    link_lengths = [1.6, 1.6, 0.8]
+
+    Jnumpy = jacobian_three_joints_numpy(thetas, link_lengths)
+    print("Jacobian J-Three (NumPy):")
+    print(Jnumpy)
+
+    Jsym = jacobian_three_joints()
+    Jsym_np = sp.lambdify(
+        (sp.symbols("theta1 theta2 theta3"), sp.symbols("l1 l2 l3")),
+        Jsym,
+        "numpy",
+    )
+    Jsym_eval = Jsym_np(thetas, link_lengths)
+    print("Jacobian J-Three (SymPy):")
+    print(Jsym_eval)
+
+    assert np.allclose(Jnumpy, Jsym_eval), "Jacobian matrices do not match!"
+    print("Unit test passed: Jacobian matrices match!")
+
+
 def jacobian_six_joints_unit_test():
     """
     Unit test for the Jacobian of a six-joint manipulator.
@@ -142,7 +185,22 @@ def jacobian_six_joints_unit_test():
 
 
 if __name__ == "__main__":
-    # jacobian_two_joints()
-    # jacobian_three_joints()
-    # jacobian_six_joints()
-    jacobian_six_joints_unit_test()
+    while True:
+        func = [
+            jacobian_two_joints,
+            jacobian_three_joints,
+            jacobian_six_joints,
+            jacobian_three_joints_unit_test,
+            jacobian_six_joints_unit_test,
+        ]
+
+        for i, f in enumerate(func, start=1):
+            print(f"{i}: {f.__name__}")
+
+        arg = input("Enter argument number (` to exit): ")
+
+        if arg == "`":
+            print("Exiting...")
+            break
+        elif arg.isdigit() and 1 <= int(arg) <= len(func):
+            func[int(arg) - 1]()

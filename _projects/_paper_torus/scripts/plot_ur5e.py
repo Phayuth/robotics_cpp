@@ -91,9 +91,9 @@ if __name__ == "__main__":
     q = ur5e.random_configuration()
     print("Random configuration: ", q)
 
-    q = np.array([0.0, -1.57, 0.0, -1.57, 0.0, 0.0])
-    tran, rot = ur5e.forward_kinematics(q)
-    print("Forward kinematics: ", tran, rot)
+    # q = np.array([0.0, -1.57, 0.0, -1.57, 0.0, 0.0])
+    # tran, rot = ur5e.forward_kinematics(q)
+    # print("Forward kinematics: ", tran, rot)
 
     ur5e.visualize()
-    ur5e.demo_visualize_motion()
+    # ur5e.demo_visualize_motion()

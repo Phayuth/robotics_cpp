@@ -250,5 +250,5 @@ if __name__ == "__main__":
             linear_and_angular_velo_all_final_specified()
         elif arg == "3":
             linear_and_angular_velo_opt_cpp()
-        elif arg == "0":
+        elif arg == "`":
             break

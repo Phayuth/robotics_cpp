@@ -98,7 +98,7 @@ int main() {
             OptimizeMultiVariable();
         } else if (choice == "3") {
             OptimizeSingleVariableNoGrad();
-        } else if (choice == "0") {
+        } else if (choice == "`") {
             std::cout << "Exiting." << std::endl;
             break;
         } else {

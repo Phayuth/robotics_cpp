@@ -296,29 +296,22 @@ def fig_r2s_prm():
 
 if __name__ == "__main__":
     while True:
-        print("Select a function to execute:")
-        print("1. Generate C-Space Point")
-        print("2. View C-Space Point")
-        print("3. Figure R2S Cart Goal")
-        print("4. Figure R2S Alt Goal")
-        print("5. Figure R2S Sng Goal")
-        print("6. Figure R2S PRM")
-        print("0. Exit")
+        func = [
+            generate_cspace_point,
+            view_cspace_point,
+            fig_r2s_cartgoal,
+            fig_r2s_altgoal,
+            fig_r2s_snggoal,
+            fig_r2s_prm,
+        ]
 
-        argid = input("Enter function id (1-6): ")
+        for i, f in enumerate(func, start=1):
+            print(f"{i}: {f.__name__}")
 
-        if int(argid) == 1:
-            generate_cspace_point()
-        elif int(argid) == 2:
-            view_cspace_point()
-        elif int(argid) == 3:
-            fig_r2s_cartgoal()
-        elif int(argid) == 4:
-            fig_r2s_altgoal()
-        elif int(argid) == 5:
-            fig_r2s_snggoal()
-        elif int(argid) == 6:
-            fig_r2s_prm()
-        elif int(argid) == 0:
+        arg = input("Enter argument number (` to exit): ")
+
+        if arg == "`":
             print("Exiting...")
             break
+        elif arg.isdigit() and 1 <= int(arg) <= len(func):
+            func[int(arg) - 1]()
