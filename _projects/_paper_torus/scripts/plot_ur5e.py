@@ -11,13 +11,17 @@ class UR5ePinocchio:
 
     def __init__(self):
         self.rsrcpath = os.environ["RSRC_DIR"] + "/rnd_torus/"
-        self.urdf_filename = self.rsrcpath + "/ur5e/ur5e_extract_calibrated.urdf"
+        self.urdf_filename = self.rsrcpath + "ur5e/ur5e_extract_calibrated.urdf"
 
         self.model = pinocchio.buildModelFromUrdf(self.urdf_filename)
-        self.urmodel, self.urcollision_model, self.urvisual_model = (
-            pinocchio.buildModelsFromUrdf(
-                self.urdf_filename, self.rsrcpath, pinocchio.JointModelFreeFlyer()
-            )
+        (
+            self.urmodel,
+            self.urcollision_model,
+            self.urvisual_model,
+        ) = pinocchio.buildModelsFromUrdf(
+            self.urdf_filename,
+            self.rsrcpath,
+            pinocchio.JointModelFreeFlyer(),
         )
 
         self.modelname = self.urmodel.name
@@ -44,7 +48,7 @@ class UR5ePinocchio:
         return q
 
     def forward_kinematics(self, q):
-        pinocchio.forwardKinematics(self.urmodel, self.data, q)
+        pinocchio.forwardKinematics(self.model, self.data, q)
         return (
             self.data.oMf[self.tip].translation,
             self.data.oMf[self.tip].rotation,
@@ -66,7 +70,7 @@ class UR5ePinocchio:
         self.viz.displayVisuals(True)
         self.viz.displayCollisions(True)
         self.viz.displayFrames(True)
-        time.sleep(2)  # no sleep cause the viewer to not show up WTF!
+        time.sleep(5)  # no sleep cause the viewer to not show up WTF!
 
     def demo_visualize_motion(self, neutral=None):
         if neutral is not None:
@@ -91,9 +95,9 @@ if __name__ == "__main__":
     q = ur5e.random_configuration()
     print("Random configuration: ", q)
 
-    # q = np.array([0.0, -1.57, 0.0, -1.57, 0.0, 0.0])
-    # tran, rot = ur5e.forward_kinematics(q)
-    # print("Forward kinematics: ", tran, rot)
+    q = np.array([0.0, -1.57, 0.0, -1.57, 0.0, 0.0])
+    tran, rot = ur5e.forward_kinematics(q)
+    print("Forward kinematics: ", tran, rot)
 
     ur5e.visualize()
     # ur5e.demo_visualize_motion()
