@@ -338,12 +338,13 @@ if __name__ == "__main__":
             joint_trajectory_visualize,
         ]
 
-        for i, f in enumerate(func):
+        for i, f in enumerate(func, start=1):
             print(f"{i}: {f.__name__}")
 
-        arg = input("Enter arguments (` to exit): ")
+        arg = input("Enter argument number (` to exit): ")
 
         if arg == "`":
+            print("Exiting...")
             break
-        elif arg.isdigit() and int(arg) < len(func):
-            func[int(arg)]()
+        elif arg.isdigit() and 1 <= int(arg) <= len(func):
+            func[int(arg) - 1]()
