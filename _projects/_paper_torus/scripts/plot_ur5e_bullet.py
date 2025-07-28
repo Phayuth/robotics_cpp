@@ -6,19 +6,20 @@ import os
 
 class UR5eBullet:
 
-    def __init__(self, mode="gui") -> None:
+    def __init__(self, mode="gui", loadobs=False) -> None:
         # connect
         if mode == "gui":
             p.connect(p.GUI)
             # p.connect(p.SHARED_MEMORY_GUI)
         if mode == "no_gui":
-            p.connect(p.DIRECT)  # for non-graphical
+            p.connect(p.DIRECT)
             # p.connect(p.SHARED_MEMORY)
 
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
         # load model and properties
-        self.load_model()
+        self.load_model(loadobs)
+        self.ghost_model = []
         self.numJoints = self.get_num_joints()
         self.jointNames = [
             "shoulder_pan_joint",
@@ -38,7 +39,7 @@ class UR5eBullet:
         self.rest_poses = [0, -np.pi / 2, -np.pi / 2, -np.pi / 2, -np.pi / 2, 0]
         self.joint_damp = [0.01] * 6
 
-    def load_model(self):
+    def load_model(self, loadobs):
         rsrcpath = os.environ["RSRC_DIR"] + "/rnd_torus/"
         plane_urdf = "plane.urdf"
         ur5e_urdf = rsrcpath + "ur5e/ur5e_extract_calibrated.urdf"
@@ -52,11 +53,63 @@ class UR5eBullet:
             useFixedBase=True,
             flags=p.URDF_USE_SELF_COLLISION,
         )
-        # self.tableID = p.loadURDF(table_urdf, [0, 0, 0])
-        self.pole1 = p.loadURDF(pole_urdf, [0.3, 0.3, 0], useFixedBase=True)
-        self.pole2 = p.loadURDF(pole_urdf, [-0.3, 0.3, 0], useFixedBase=True)
-        self.pole3 = p.loadURDF(pole_urdf, [-0.3, -0.3, 0], useFixedBase=True)
-        self.pole4 = p.loadURDF(pole_urdf, [0.3, -0.3, 0], useFixedBase=True)
+        if loadobs:
+            # self.tableID = p.loadURDF(table_urdf, [0, 0, 0])
+            self.pole1 = p.loadURDF(pole_urdf, [0.3, 0.3, 0], useFixedBase=True)
+            self.pole2 = p.loadURDF(pole_urdf, [-0.3, 0.3, 0], useFixedBase=True)
+            self.pole3 = p.loadURDF(pole_urdf, [-0.3, -0.3, 0], useFixedBase=True)
+            self.pole4 = p.loadURDF(pole_urdf, [0.3, -0.3, 0], useFixedBase=True)
+
+    def load_models_ghost(self, color=None):
+        rsrcpath = os.environ["RSRC_DIR"] + "/rnd_torus/"
+        ur5e_urdf = rsrcpath + "ur5e/ur5e_extract_calibrated.urdf"
+        ur5e_ghost_id = p.loadURDF(
+            ur5e_urdf,
+            [0, 0, 0],
+            useFixedBase=True,
+            flags=p.URDF_USE_SELF_COLLISION,
+        )
+
+        # Disable all collisions
+        for link_index in range(-1, p.getNumJoints(ur5e_ghost_id)):
+            p.setCollisionFilterGroupMask(ur5e_ghost_id, link_index, 0, 0)
+
+        # Set the color of the ghost model
+        if color:
+            self.change_color(
+                ur5e_ghost_id,
+                red=color[0],
+                green=color[1],
+                blue=color[2],
+                alpha=color[3],
+            )
+
+        self.ghost_model.append(ur5e_ghost_id)
+
+    def load_slider(self):
+        self.redSlider = p.addUserDebugParameter("red", 0, 1, 1)
+        self.greenSlider = p.addUserDebugParameter("green", 0, 1, 0)
+        self.blueSlider = p.addUserDebugParameter("blue", 0, 1, 0)
+        self.alphaSlider = p.addUserDebugParameter("alpha", 0, 1, 0.5)
+
+    def read_slider(self):
+        red = p.readUserDebugParameter(self.redSlider)
+        green = p.readUserDebugParameter(self.greenSlider)
+        blue = p.readUserDebugParameter(self.blueSlider)
+        alpha = p.readUserDebugParameter(self.alphaSlider)
+        return red, green, blue, alpha
+
+    def change_color(self, urdf_id, red=1, green=0, blue=0, alpha=1):
+        num_joints = p.getNumJoints(urdf_id)
+        for link_index in range(-1, num_joints):  # -1 includes the base link
+            visuals = p.getVisualShapeData(urdf_id)
+            for visual in visuals:
+                if visual[1] == link_index:
+                    p.changeVisualShape(
+                        objectUniqueId=urdf_id,
+                        linkIndex=link_index,
+                        rgbaColor=[red, green, blue, alpha],
+                    )
 
     def get_visualizer_camera(self):
         (
@@ -243,11 +296,16 @@ class UR5eBullet:
                 targetValue=targetValues[i],
             )
 
+    def reset_array_joint_state_ghost(self, targetValues, urdf_id):
+        for i in range(6):
+            p.resetJointState(
+                urdf_id,
+                jointIndex=self.jointIDs[i],
+                targetValue=targetValues[i],
+            )
+
     def collisioncheck(self):
         p.performCollisionDetection()
-
-    def move_to_config_sequences(self, seg):
-        pass
 
 
 def simple_visualize():
@@ -264,6 +322,29 @@ def simple_visualize():
     try:
         while True:
             p.stepSimulation()
+    except KeyboardInterrupt:
+        p.disconnect()
+
+
+def simple_visualize_change_color():
+    robot = UR5eBullet("gui")
+    robot.load_models_ghost()
+    robot.load_slider()
+
+    # camera for exp3
+    robot.set_visualizer_camera(
+        1.4,
+        50.0,
+        -35.0,
+        (-0.037039175629615784, 0.08329583704471588, 0.2426416277885437),
+    )
+
+    try:
+        while True:
+            rgba = robot.read_slider()
+            robot.change_color(robot.ghost_model[0], *rgba)
+            p.stepSimulation()
+
     except KeyboardInterrupt:
         p.disconnect()
 
@@ -296,7 +377,7 @@ def collision_check():
 
 
 def joint_trajectory_visualize():
-    robot = UR5eBullet("gui")
+    robot = UR5eBullet("gui", loadobs=False)
 
     # camera for exp3
     robot.set_visualizer_camera(
@@ -306,25 +387,73 @@ def joint_trajectory_visualize():
         (-0.037039175629615784, 0.08329583704471588, 0.2426416277885437),
     )
 
-    path = np.loadtxt("zzz_path.csv", delimiter=",")
-
-    qs = path[0]
-    qg = path[-1]
-    n_steps = 10
-    path_interpolated = np.linspace(qs, qg, n_steps)
-
+    # exp 2
     qs = [0.0, -np.pi / 2, np.pi / 2, np.pi / 2, np.pi / 2, 0.0]
-    qg = [-1.12, -1.86, 1.87, 0.0, np.pi / 2, 0.0]
+    qg1_short = [-1.12, -1.86, 1.87, 0.0, np.pi / 2, 0.0]
+    qg2_long = [-1.12 + 2 * np.pi, -1.86, 1.87, 0.0, np.pi / 2, 0.0]
+    n_steps = 100
+    path_short = np.linspace(qs, qg1_short, n_steps)
+    path_long = np.linspace(qs, qg2_long, n_steps)
+
+    # exp 3
     qg_a = [0.0, -0.98, 1.57, -0.47, 1.57, 0.0]
     qg_b = [1.47, -0.11, -1.22, 3.53, -1.57, 6.23]
     qg_c = [-3.22, -1.09, 1.59, 5.86, 1.59, 0.0]
     qg_d = [-1.52, -1.02, 0.81, 5.35, 6.23, 2.36]
+    path_seq = np.loadtxt("../build/zzz_path.csv", delimiter=",")
 
+    path = path_short
     try:
+        j = 0
         while True:
-            for q in path_interpolated:
+            nkey = ord("n")
+            keys = p.getKeyboardEvents()
+            if nkey in keys and keys[nkey] & p.KEY_WAS_TRIGGERED:
+                q = path[j % n_steps]
+                print(f"step {j}: {q}")
                 robot.reset_array_joint_state(q)
-            p.stepSimulation()
+                p.stepSimulation()
+                j += 1
+
+    except KeyboardInterrupt:
+        p.disconnect()
+
+
+def joint_trajectory_visualize_ghost():
+    robot = UR5eBullet("gui", loadobs=False)
+    robot.load_models_ghost(color=[0, 1, 0, 0.1])  # green ghost model
+    robot.load_models_ghost(color=[1, 0, 0, 0.1])  # red ghost model
+
+    # camera for exp3
+    robot.set_visualizer_camera(
+        1.0,
+        61.20,
+        -42.20,
+        (-0.15094073116779327, 0.1758367419242859, 0.10792634636163712),
+    )
+
+    # exp 2
+    qs = [0.0, -np.pi / 2, np.pi / 2, np.pi / 2, np.pi / 2, 0.0]
+    qg1_short = [-1.12, -1.86, 1.87, 0.0, np.pi / 2, 0.0]
+    qg2_long = [-1.12 + 2 * np.pi, -1.86, 1.87, 0.0, np.pi / 2, 0.0]
+    n_steps = 100
+    path_short = np.linspace(qs, qg1_short, n_steps)
+    path_long = np.linspace(qs, qg2_long, n_steps)
+
+    path = path_short
+    robot.reset_array_joint_state_ghost(path[0], robot.ghost_model[0])
+    robot.reset_array_joint_state_ghost(path[-1], robot.ghost_model[-1])
+    try:
+        j = 0
+        while True:
+            nkey = ord("n")
+            keys = p.getKeyboardEvents()
+            if nkey in keys and keys[nkey] & p.KEY_WAS_TRIGGERED:
+                q = path[j % n_steps]
+                print(f"step {j}: {q}")
+                robot.reset_array_joint_state(q)
+                p.stepSimulation()
+                j += 1
 
     except KeyboardInterrupt:
         p.disconnect()
@@ -334,8 +463,10 @@ if __name__ == "__main__":
     while True:
         func = [
             simple_visualize,
+            simple_visualize_change_color,
             collision_check,
             joint_trajectory_visualize,
+            joint_trajectory_visualize_ghost,
         ]
 
         for i, f in enumerate(func, start=1):

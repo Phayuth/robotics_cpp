@@ -2,6 +2,7 @@ import pyomo.environ as pyo
 import math
 import matplotlib.pyplot as plt
 import random
+import time
 
 
 def travelling_sale_man_TSM():
@@ -123,7 +124,7 @@ def generalized_travelling_salesman_GTSM():
     # --------------------------
     random.seed(49)
     num_clusters = 5
-    cities_per_cluster = 3
+    cities_per_cluster = 8
     clusters = {}
     coords = {}
     city_id = 0
@@ -222,7 +223,11 @@ def generalized_travelling_salesman_GTSM():
     # 6. Solve
     # --------------------------
     solver = pyo.SolverFactory("glpk")
+    print("Solving GTSP model...")
+    ts = time.time()
     solver.solve(model, tee=False)
+    te = time.time()
+    print(f"Solved in {te - ts:.2f} seconds")
 
     # --------------------------
     # 7. Extract and Plot Tour

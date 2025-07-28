@@ -3,6 +3,7 @@ import numpy as np
 import pinocchio
 import time
 from pinocchio.visualize import MeshcatVisualizer
+from eaik.IK_DH import DhRobot
 
 np.set_printoptions(precision=4, suppress=True, linewidth=120)
 # unset PYTHONPATH
@@ -29,6 +30,12 @@ class UR5ePinocchio:
         self.tip = self.urmodel.getFrameId("gripper")
         self.data = self.urmodel.createData()
         self.jntid = [7, 8, 9, 10, 11, 12]  # q1=7, q2=8, q3=9, q4=10, q5=11, q6=12
+
+        # eaik
+        self.d = np.array([0.1625, 0, 0, 0.1333, 0.0997, 0.0996])
+        self.alpha = np.array([np.pi / 2, 0, 0, np.pi / 2, -np.pi / 2, 0])
+        self.a = np.array([0, -0.425, -0.3922, 0, 0, 0])
+        self.ikbot = DhRobot(self.alpha, self.a, self.d)
 
     def print_debug(self):
         print("model name: " + self.modelname)
@@ -73,6 +80,17 @@ class UR5ePinocchio:
         q_sol = pinocchio.ik(self.urmodel, self.data, q_init, target_frame)
         return q_sol
 
+    def forward_kinematics_eaik(self, q):
+        t = self.ikbot.fwdKin(q)
+        return t
+
+    def inverse_kinematics_eaik(self, t):
+        ik_solutions = self.ikbot.IK(t)
+        q00 = self.make_joint_configuration_neutral()
+        qpin = np.tile(q00, (8, 1))
+        qpin[:, 7:] = ik_solutions.Q
+        return ik_solutions.num_solutions(), ik_solutions.Q, qpin
+
     def visualize(self):
         self.viz = MeshcatVisualizer(
             self.urmodel, self.urcollision_model, self.urvisual_model
@@ -80,7 +98,7 @@ class UR5ePinocchio:
         self.viz.initViewer(open=True)
         self.viz.loadViewerModel(rootNodeName="ur5e")
         self.viz.displayVisuals(True)
-        self.viz.displayCollisions(True)
+        self.viz.displayCollisions(False)
         self.viz.displayFrames(True)
 
         q0 = pinocchio.neutral(self.urmodel)
@@ -88,8 +106,13 @@ class UR5ePinocchio:
 
         time.sleep(5)  # no sleep cause the viewer to not show up WTF!
 
-    def simulate_motion(self, path):
-        pass
+    def view_motion(self, path):
+        q0 = pinocchio.neutral(self.urmodel)
+        self.viz.display(q0)
+
+        for i in range(path.shape[0]):
+            self.viz.display(path[i])
+            time.sleep(1)
 
     def demo_visualize_motion(self, neutral=None):
         if neutral is not None:
@@ -130,6 +153,8 @@ def eaik_analytical_solution_dh_ur5e():
 
     q[:, 7:] = ik_solutions.Q
     print(q)
+    ur5e.visualize()
+    ur5e.view_motion(q)
 
 
 def prnt_debug():
