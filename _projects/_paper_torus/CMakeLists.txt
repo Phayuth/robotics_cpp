@@ -44,3 +44,6 @@ target_link_libraries(r6s_snggoal PUBLIC ompl robot spatial_geometry yaml-cpp)
 add_executable(so2s_snggoal src/so2s_snggoal.cpp)
 target_link_libraries(so2s_snggoal PUBLIC ompl robot spatial_geometry yaml-cpp)
 
+# bindings
+find_package(pybind11 REQUIRED)
+pybind11_add_module(my_module test/bindpy.cpp)
