@@ -32,6 +32,19 @@ def generate_random_tasks(bot, num_tasks=10, seed=42):
     return T
 
 
+def generate_linear_interpolation_tasks(bot, num_tasks=10, seed=42):
+    np.random.seed(seed)
+    angle_start = np.random.uniform(-np.pi, np.pi, size=(6,))
+    angle_end = np.random.uniform(-np.pi, np.pi, size=(6,))
+    T = []
+    for i in range(num_tasks):
+        alpha = i / (num_tasks - 1)
+        angle = (1 - alpha) * angle_start + alpha * angle_end
+        t = solve_fk(bot, angle)
+        T.append(t)
+    return T
+
+
 def find_alt_configs(Q):
     limt6 = np.array(
         [
