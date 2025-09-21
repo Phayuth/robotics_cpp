@@ -4,6 +4,12 @@ import pinocchio
 import time
 from pinocchio.visualize import MeshcatVisualizer
 from eaik.IK_DH import DhRobot
+import matplotlib.pyplot as plt
+from pytransform3d.transformations import plot_transform
+from pytransform3d.plot_utils import make_3d_axis
+from pytransform3d.transform_manager import TransformManager
+from spatialmath import SE3
+import pickle
 
 np.set_printoptions(precision=4, suppress=True, linewidth=120)
 # unset PYTHONPATH
@@ -28,6 +34,7 @@ class UR5ePinocchio:
 
         self.modelname = self.urmodel.name
         self.tip = self.urmodel.getFrameId("gripper")
+        self.ee = self.urmodel.getFrameId("tool0")
         self.data = self.urmodel.createData()
         self.jntid = [7, 8, 9, 10, 11, 12]  # q1=7, q2=8, q3=9, q4=10, q5=11, q6=12
 
@@ -66,11 +73,21 @@ class UR5ePinocchio:
         return q0
 
     def forward_kinematics(self, q):
+        q = self.make_joint_configuration(q)
         pinocchio.forwardKinematics(self.urmodel, self.data, q)
         pinocchio.updateFramePlacements(self.urmodel, self.data)
         return (
             self.data.oMf[self.tip].translation,
             self.data.oMf[self.tip].rotation,
+        )
+
+    def forward_kinematics_ee(self, q):
+        q = self.make_joint_configuration(q)
+        pinocchio.forwardKinematics(self.urmodel, self.data, q)
+        pinocchio.updateFramePlacements(self.urmodel, self.data)
+        return (
+            self.data.oMf[self.ee].translation,
+            self.data.oMf[self.ee].rotation,
         )
 
     def inverse_kinematics(self, q_init, target_position, target_rotation):
@@ -106,29 +123,33 @@ class UR5ePinocchio:
 
         time.sleep(5)  # no sleep cause the viewer to not show up WTF!
 
-    def view_motion(self, path):
-        q0 = pinocchio.neutral(self.urmodel)
-        self.viz.display(q0)
-
-        for i in range(path.shape[0]):
-            self.viz.display(path[i])
-            time.sleep(1)
-
-    def demo_visualize_motion(self, neutral=None):
+    def visualize_motion(self, path, neutral=None):
         if neutral is not None:
             q0 = neutral
         else:
             q0 = pinocchio.neutral(self.urmodel)
         self.viz.display(q0)
 
-        n_steps = 1000
-        amplitude = 3.14  # radians
-        center = q0[3]
-        for i in range(n_steps):
-            q = q0.copy()
-            q[7] = center + amplitude * np.sin(2 * np.pi * i / n_steps)
+        assert path.shape[1] == 6, "Second dimension must be 6 for UR5e"
+
+        Hsave = []
+        for i in range(path.shape[0]):
+            q = self.make_joint_configuration(path[i])
+            fk = self.forward_kinematics_ee(path[i])
+            Hfk = self.make_H(fk[0], fk[1])
+            Hsave.append(Hfk)
             self.viz.display(q)
-            time.sleep(0.01)
+            time.sleep(0.1)
+
+        path = os.path.join(self.rsrcpath, "Htour.pickle")
+        with open(path, "wb") as f:
+            pickle.dump(Hsave, f)
+
+    def make_H(self, t, R):
+        H = np.eye(4)
+        H[:3, 3] = t
+        H[:3, :3] = R
+        return H
 
 
 def eaik_analytical_solution_dh_ur5e():
@@ -161,6 +182,39 @@ def prnt_debug():
     ur5e = UR5ePinocchio()
     ur5e.print_debug()
 
+    tm = TransformManager()
+    Hrand_urdf = np.array(
+        [
+            [0.0, 0.0, 1.0, 0.5],
+            [0.0, 1.0, 0.0, 1.0],
+            [-1.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
+
+    tm.add_transform("rand", "urdf_base", Hrand_urdf)
+
+    q0 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    fkpinee = ur5e.forward_kinematics_ee(q0)
+    fkdh = ur5e.forward_kinematics_eaik(q0)
+
+    Hpinee = np.eye(4)
+    Hpinee[:3, 3] = fkpinee[0]
+    Hpinee[:3, :3] = fkpinee[1]
+
+    tm.add_transform("ee", "urdf_base", Hpinee)
+    tm.add_transform("eee", "dh_base", fkdh)
+
+    Hbasedh = SE3.Rz(np.pi).A
+    tm.add_transform("dh_base", "urdf_base", Hbasedh)
+
+    Hrand_dh = np.linalg.inv(Hbasedh) @ Hrand_urdf
+    tm.add_transform("Hranddddd", "dh_base", Hrand_dh)
+
+    ax = make_3d_axis(ax_s=1, unit="m")
+    tm.plot_frames_in("urdf_base", ax=ax, s=0.5)
+    plt.show()
+
 
 def rnd_config():
     ur5e = UR5ePinocchio()
@@ -176,10 +230,32 @@ def forward_kin():
     print("Rotation: ", rot)
 
 
-def vizualize():
+def vizualize_demo():
     ur5e = UR5ePinocchio()
     ur5e.visualize()
-    ur5e.demo_visualize_motion()
+
+    q0 = pinocchio.neutral(ur5e.urmodel)
+    ur5e.viz.display(q0)
+    n_steps = 1000
+    amplitude = 3.14  # radians
+    center = q0[3]
+    for i in range(n_steps):
+        q = q0.copy()
+        q[7] = center + amplitude * np.sin(2 * np.pi * i / n_steps)
+        ur5e.viz.display(q)
+        time.sleep(0.01)
+
+
+def visualize_motion():
+    ur5e = UR5ePinocchio()
+    ur5e.visualize()
+
+    path = os.path.join(ur5e.rsrcpath, "collision_free_tour.npy")
+    pathalt = os.path.join(ur5e.rsrcpath, "collision_free_tour_altconfig.npy")
+    path = np.load(path)
+    pathalt = np.load(pathalt)
+
+    ur5e.visualize_motion(pathalt)
 
 
 if __name__ == "__main__":
@@ -189,7 +265,8 @@ if __name__ == "__main__":
             prnt_debug,
             rnd_config,
             forward_kin,
-            vizualize,
+            vizualize_demo,
+            visualize_motion,
         ]
 
         for i, f in enumerate(func, start=1):

@@ -4,9 +4,38 @@ import pybullet_data
 import os
 
 
+class Constants:
+    rsrcpath = os.environ["RSRC_DIR"] + "/rnd_torus/"
+    ur5e_urdf = rsrcpath + "ur5e/ur5e_extract_calibrated.urdf"
+    plane_urdf = rsrcpath + "plane.urdf"
+    pole_urdf = rsrcpath + "ur5e/simple_box.urdf"
+    table_urdf = "table/table.urdf"
+    shelf_urdf = rsrcpath + "ur5e/shelf.urdf"
+
+    camera_exp3 = (
+        1.0,
+        61.20,
+        -42.20,
+        (-0.15094073116779327, 0.1758367419242859, 0.10792634636163712),
+    )
+
+    model_list = [
+        (table_urdf, [0, 0, 0], [0, 0, 0, 1]),
+        (pole_urdf, [0.3, 0.3, 0], [0, 0, 0, 1]),
+        (pole_urdf, [-0.3, 0.3, 0], [0, 0, 0, 1]),
+        (pole_urdf, [-0.3, -0.3, 0], [0, 0, 0, 1]),
+        (pole_urdf, [0.3, -0.3, 0], [0, 0, 0, 1]),
+    ]
+
+    model_list_shelf = [
+        (shelf_urdf, [0, 0.75, 0], [0, 0, 1, 0]),
+        (shelf_urdf, [0, -0.75, 0], [0, 0, 0, 1]),
+    ]
+
+
 class UR5eBullet:
 
-    def __init__(self, mode="gui", loadobs=False) -> None:
+    def __init__(self, mode="gui") -> None:
         # connect
         if mode == "gui":
             p.connect(p.GUI)
@@ -18,7 +47,8 @@ class UR5eBullet:
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
         # load model and properties
-        self.load_model(loadobs)
+        self.load_model()
+        self.models_others = []
         self.ghost_model = []
         self.numJoints = self.get_num_joints()
         self.jointNames = [
@@ -39,12 +69,10 @@ class UR5eBullet:
         self.rest_poses = [0, -np.pi / 2, -np.pi / 2, -np.pi / 2, -np.pi / 2, 0]
         self.joint_damp = [0.01] * 6
 
-    def load_model(self, loadobs):
+    def load_model(self):
         rsrcpath = os.environ["RSRC_DIR"] + "/rnd_torus/"
         plane_urdf = "plane.urdf"
         ur5e_urdf = rsrcpath + "ur5e/ur5e_extract_calibrated.urdf"
-        table_urdf = rsrcpath + "table/table.urdf"
-        pole_urdf = rsrcpath + "ur5e/simple_box.urdf"
 
         self.planeID = p.loadURDF(plane_urdf, [0, 0, 0])
         self.ur5eID = p.loadURDF(
@@ -53,12 +81,13 @@ class UR5eBullet:
             useFixedBase=True,
             flags=p.URDF_USE_SELF_COLLISION,
         )
-        if loadobs:
-            # self.tableID = p.loadURDF(table_urdf, [0, 0, 0])
-            self.pole1 = p.loadURDF(pole_urdf, [0.3, 0.3, 0], useFixedBase=True)
-            self.pole2 = p.loadURDF(pole_urdf, [-0.3, 0.3, 0], useFixedBase=True)
-            self.pole3 = p.loadURDF(pole_urdf, [-0.3, -0.3, 0], useFixedBase=True)
-            self.pole4 = p.loadURDF(pole_urdf, [0.3, -0.3, 0], useFixedBase=True)
+        return self.ur5eID, self.planeID
+
+    def load_models_other(self, model_list):
+        for murdf, mp, mo in model_list:
+            mid = p.loadURDF(murdf, mp, mo, useFixedBase=True)
+            self.models_others.append(mid)
+        return self.models_others
 
     def load_models_ghost(self, color=None):
         rsrcpath = os.environ["RSRC_DIR"] + "/rnd_torus/"
@@ -85,6 +114,7 @@ class UR5eBullet:
             )
 
         self.ghost_model.append(ur5e_ghost_id)
+        return self.ghost_model
 
     def load_slider(self):
         self.redSlider = p.addUserDebugParameter("red", 0, 1, 1)
@@ -92,12 +122,28 @@ class UR5eBullet:
         self.blueSlider = p.addUserDebugParameter("blue", 0, 1, 0)
         self.alphaSlider = p.addUserDebugParameter("alpha", 0, 1, 0.5)
 
+        self.j1s = p.addUserDebugParameter("joint_1", -np.pi, np.pi, 0)
+        self.j2s = p.addUserDebugParameter("joint_2", -np.pi, np.pi, 0)
+        self.j3s = p.addUserDebugParameter("joint_3", -np.pi, np.pi, 0)
+        self.j4s = p.addUserDebugParameter("joint_4", -np.pi, np.pi, 0)
+        self.j5s = p.addUserDebugParameter("joint_5", -np.pi, np.pi, 0)
+        self.j6s = p.addUserDebugParameter("joint_6", -np.pi, np.pi, 0)
+
     def read_slider(self):
         red = p.readUserDebugParameter(self.redSlider)
         green = p.readUserDebugParameter(self.greenSlider)
         blue = p.readUserDebugParameter(self.blueSlider)
         alpha = p.readUserDebugParameter(self.alphaSlider)
         return red, green, blue, alpha
+
+    def read_joint_slider(self):
+        j1 = p.readUserDebugParameter(self.j1s)
+        j2 = p.readUserDebugParameter(self.j2s)
+        j3 = p.readUserDebugParameter(self.j3s)
+        j4 = p.readUserDebugParameter(self.j4s)
+        j5 = p.readUserDebugParameter(self.j5s)
+        j6 = p.readUserDebugParameter(self.j6s)
+        return j1, j2, j3, j4, j5, j6
 
     def change_color(self, urdf_id, red=1, green=0, blue=0, alpha=1):
         num_joints = p.getNumJoints(urdf_id)
@@ -276,17 +322,33 @@ class UR5eBullet:
         )
         return joint_angles
 
-    def contact_point(self):
-        contact_points = p.getContactPoints(bodyA=self.ur5eID, bodyB=self.tableID)
-        print(f"> contact_points: {contact_points}")
+    def collisioncheck(self):
+        p.performCollisionDetection()
+
+    def contact_point(self, modelid):
+        contact_points = p.getContactPoints(
+            bodyA=self.ur5eID,
+            bodyB=modelid,
+        )
         # for point in contact_points:
         #     print(f"Contact point details: {point}")
+        return contact_points
 
-    def closest_point(self):
+    def closest_point(self, modelid):
         closest_points = p.getClosestPoints(
-            bodyA=self.ur5eID, bodyB=self.tableID, distance=0.5
+            bodyA=self.ur5eID,
+            bodyB=modelid,
+            distance=0.5,
         )
-        print(f"> closest_points: {closest_points}")
+        return closest_points
+
+    def collsion_check(self, modelid):
+        self.collisioncheck()
+        cp = self.contact_point(modelid)
+        if len(cp) > 0:
+            return True
+        else:
+            return False
 
     def reset_array_joint_state(self, targetValues):
         for i in range(6):
@@ -304,24 +366,19 @@ class UR5eBullet:
                 targetValue=targetValues[i],
             )
 
-    def collisioncheck(self):
-        p.performCollisionDetection()
-
 
 def simple_visualize():
     robot = UR5eBullet("gui")
+    robot.load_slider()
 
-    # camera for exp3
-    robot.set_visualizer_camera(
-        1.4,
-        50.0,
-        -35.0,
-        (-0.037039175629615784, 0.08329583704471588, 0.2426416277885437),
-    )
+    robot.set_visualizer_camera(*Constants.camera_exp3)
 
     try:
         while True:
+            jp = robot.read_joint_slider()
+            robot.reset_array_joint_state(jp)
             p.stepSimulation()
+
     except KeyboardInterrupt:
         p.disconnect()
 
@@ -331,13 +388,7 @@ def simple_visualize_change_color():
     robot.load_models_ghost()
     robot.load_slider()
 
-    # camera for exp3
-    robot.set_visualizer_camera(
-        1.4,
-        50.0,
-        -35.0,
-        (-0.037039175629615784, 0.08329583704471588, 0.2426416277885437),
-    )
+    robot.set_visualizer_camera(*Constants.camera_exp3)
 
     try:
         while True:
@@ -351,14 +402,10 @@ def simple_visualize_change_color():
 
 def collision_check():
     robot = UR5eBullet("gui")
+    # model_id = robot.load_models_other(Constants.model_list)
+    model_id = robot.load_models_other(Constants.model_list_shelf)
 
-    # camera for exp2
-    robot.set_visualizer_camera(
-        1.0,
-        50.0,
-        -35.0,
-        (-0.037039175629615784, 0.08329583704471588, 0.2426416277885437),
-    )
+    robot.set_visualizer_camera(*Constants.camera_exp3)
 
     try:
         while True:
@@ -366,10 +413,8 @@ def collision_check():
             keys = p.getKeyboardEvents()
             if qKey in keys and keys[qKey] & p.KEY_WAS_TRIGGERED:
                 break
-            robot.collisioncheck()
-            robot.contact_point()
-            robot.closest_point()
-
+            # iscollide = robot.collsion_check(model_id[0])
+            # print(f"Collision: {iscollide}")
             p.stepSimulation()
 
     except KeyboardInterrupt:
@@ -379,13 +424,7 @@ def collision_check():
 def joint_trajectory_visualize():
     robot = UR5eBullet("gui", loadobs=False)
 
-    # camera for exp3
-    robot.set_visualizer_camera(
-        1.4,
-        50.0,
-        -35.0,
-        (-0.037039175629615784, 0.08329583704471588, 0.2426416277885437),
-    )
+    robot.set_visualizer_camera(*Constants.camera_exp3)
 
     # exp 2
     qs = [0.0, -np.pi / 2, np.pi / 2, np.pi / 2, np.pi / 2, 0.0]
@@ -425,12 +464,7 @@ def joint_trajectory_visualize_ghost():
     robot.load_models_ghost(color=[1, 0, 0, 0.1])  # red ghost model
 
     # camera for exp3
-    robot.set_visualizer_camera(
-        1.0,
-        61.20,
-        -42.20,
-        (-0.15094073116779327, 0.1758367419242859, 0.10792634636163712),
-    )
+    robot.set_visualizer_camera(*Constants.camera_exp3)
 
     # exp 2
     qs = [0.0, -np.pi / 2, np.pi / 2, np.pi / 2, np.pi / 2, 0.0]
@@ -460,22 +494,14 @@ def joint_trajectory_visualize_ghost():
 
 
 if __name__ == "__main__":
-    while True:
-        func = [
-            simple_visualize,
-            simple_visualize_change_color,
-            collision_check,
-            joint_trajectory_visualize,
-            joint_trajectory_visualize_ghost,
-        ]
+    from util import option_runner
 
-        for i, f in enumerate(func, start=1):
-            print(f"{i}: {f.__name__}")
+    func = [
+        simple_visualize,
+        simple_visualize_change_color,
+        collision_check,
+        joint_trajectory_visualize,
+        joint_trajectory_visualize_ghost,
+    ]
 
-        arg = input("Enter argument number (` to exit): ")
-
-        if arg == "`":
-            print("Exiting...")
-            break
-        elif arg.isdigit() and 1 <= int(arg) <= len(func):
-            func[int(arg) - 1]()
+    option_runner(func, default_id="3")

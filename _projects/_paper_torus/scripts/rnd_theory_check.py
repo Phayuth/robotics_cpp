@@ -1,8 +1,190 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from spatial_geometry.utils import Utils
-from pytransform3d.transformations import plot_transform
-from pytransform3d.plot_utils import make_3d_axis
+from util import plot_tf
+import sympy as sp
+
+
+def jacobian_two_joints():
+    """
+    Computes the Jacobian for a two-joint planar manipulator.
+    """
+    theta1, theta2 = sp.symbols("theta1 theta2")
+    l1, l2 = sp.symbols("l1 l2")
+
+    # Forward kinematics
+    x = l1 * sp.cos(theta1) + l2 * sp.cos(theta1 + theta2)
+    y = l1 * sp.sin(theta1) + l2 * sp.sin(theta1 + theta2)
+
+    pos = sp.Matrix([x, y])
+    joint_angles = sp.Matrix([theta1, theta2])
+
+    J = pos.jacobian(joint_angles)
+    J.simplify()
+
+    print("Jacobian J-Two:")
+    sp.pprint(J, use_unicode=True)
+    return J
+
+
+def jacobian_three_joints():
+    """
+    Computes the Jacobian for a three-joint planar manipulator.
+    """
+    theta1, theta2, theta3 = sp.symbols("theta1 theta2 theta3")
+    l1, l2, l3 = sp.symbols("l1 l2 l3")
+
+    # Forward kinematics
+    x = (
+        l1 * sp.cos(theta1)
+        + l2 * sp.cos(theta1 + theta2)
+        + l3 * sp.cos(theta1 + theta2 + theta3)
+    )
+    y = (
+        l1 * sp.sin(theta1)
+        + l2 * sp.sin(theta1 + theta2)
+        + l3 * sp.sin(theta1 + theta2 + theta3)
+    )
+    phi = theta1 + theta2 + theta3
+
+    pos = sp.Matrix([x, y, phi])
+    joint_angles = sp.Matrix([theta1, theta2, theta3])
+
+    J = pos.jacobian(joint_angles)
+    J.simplify()
+
+    print("Jacobian J-Three:")
+    sp.pprint(J, use_unicode=True)
+    return J
+
+
+def jacobian_three_joints_numpy(thetas, link_lengths):
+    thetas = np.asarray(thetas)
+    link_lengths = np.asarray(link_lengths)
+
+    cum_thetas = np.cumsum(thetas)
+    sin_t = np.sin(cum_thetas)
+    cos_t = np.cos(cum_thetas)
+
+    J = np.zeros((3, 3))
+    J[2, :] = 1
+
+    for i in range(3):
+        J[0, i] = -np.sum(link_lengths[i:] * sin_t[i:])
+        J[1, i] = np.sum(link_lengths[i:] * cos_t[i:])
+
+    return J
+
+
+def jacobian_six_joints():
+    """
+    Computes the Jacobian for a six-joint manipulator.
+    """
+    theta1, theta2, theta3, theta4, theta5, theta6 = sp.symbols(
+        "theta1 theta2 theta3 theta4 theta5 theta6"
+    )
+    l1, l2, l3, l4, l5, l6 = sp.symbols("l1 l2 l3 l4 l5 l6")
+
+    # Forward kinematics (example for a 6-DOF manipulator)
+    x = (
+        l1 * sp.cos(theta1)
+        + l2 * sp.cos(theta1 + theta2)
+        + l3 * sp.cos(theta1 + theta2 + theta3)
+        + l4 * sp.cos(theta1 + theta2 + theta3 + theta4)
+        + l5 * sp.cos(theta1 + theta2 + theta3 + theta4 + theta5)
+        + l6 * sp.cos(theta1 + theta2 + theta3 + theta4 + theta5 + theta6)
+    )
+    y = (
+        l1 * sp.sin(theta1)
+        + l2 * sp.sin(theta1 + theta2)
+        + l3 * sp.sin(theta1 + theta2 + theta3)
+        + l4 * sp.sin(theta1 + theta2 + theta3 + theta4)
+        + l5 * sp.sin(theta1 + theta2 + theta3 + theta4 + theta5)
+        + l6 * sp.sin(theta1 + theta2 + theta3 + theta4 + theta5 + theta6)
+    )
+
+    phi = theta1 + theta2 + theta3 + theta4 + theta5 + theta6
+
+    pos = sp.Matrix([x, y, phi])
+    joint_angles = sp.Matrix([theta1, theta2, theta3, theta4, theta5, theta6])
+
+    J = pos.jacobian(joint_angles)
+    J.simplify()
+
+    print("Jacobian J-Six:")
+    sp.pprint(J, use_unicode=True)
+    return J
+
+
+def jacobian_six_joints_numpy(thetas, link_lengths):
+    thetas = np.asarray(thetas)
+    link_lengths = np.asarray(link_lengths)
+
+    cum_thetas = np.cumsum(thetas)
+    sin_t = np.sin(cum_thetas)
+    cos_t = np.cos(cum_thetas)
+
+    J = np.zeros((3, 6))
+    J[2, :] = 1
+
+    for i in range(6):
+        J[0, i] = -np.sum(link_lengths[i:] * sin_t[i:])
+        J[1, i] = np.sum(link_lengths[i:] * cos_t[i:])
+
+    return J
+
+
+def jacobian_three_joints_unit_test():
+    """
+    Unit test for the Jacobian of a three-joint manipulator.
+    """
+    thetas = [0.0, 0.0, 0.0]
+    link_lengths = [1.6, 1.6, 0.8]
+
+    Jnumpy = jacobian_three_joints_numpy(thetas, link_lengths)
+    print("Jacobian J-Three (NumPy):")
+    print(Jnumpy)
+
+    Jsym = jacobian_three_joints()
+    Jsym_np = sp.lambdify(
+        (sp.symbols("theta1 theta2 theta3"), sp.symbols("l1 l2 l3")),
+        Jsym,
+        "numpy",
+    )
+    Jsym_eval = Jsym_np(thetas, link_lengths)
+    print("Jacobian J-Three (SymPy):")
+    print(Jsym_eval)
+
+    assert np.allclose(Jnumpy, Jsym_eval), "Jacobian matrices do not match!"
+    print("Unit test passed: Jacobian matrices match!")
+
+
+def jacobian_six_joints_unit_test():
+    """
+    Unit test for the Jacobian of a six-joint manipulator.
+    """
+    thetas = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+    link_lengths = [1, 1, 1, 1, 1, 1]
+
+    Jnumpy = jacobian_six_joints_numpy(thetas, link_lengths)
+    print("Jacobian J-Six (NumPy):")
+    print(Jnumpy)
+
+    Jsym = jacobian_six_joints()
+    Jsym_np = sp.lambdify(
+        (
+            sp.symbols("theta1 theta2 theta3 theta4 theta5 theta6"),
+            sp.symbols("l1 l2 l3 l4 l5 l6"),
+        ),
+        Jsym,
+        "numpy",
+    )
+    Jsym_eval = Jsym_np(thetas, link_lengths)
+    print("Jacobian J-Six (SymPy):")
+    print(Jsym_eval)
+
+    assert np.allclose(Jnumpy, Jsym_eval), "Jacobian matrices do not match!"
+    print("Unit test passed: Jacobian matrices match!")
 
 
 def explore_nullspace():
@@ -115,22 +297,6 @@ def eaik_analytical_solution_urdf():
     print("Inverse kinematics solutions: ", ik_solutions)
 
 
-def plot_tf(T: list, names: list[str] = None):
-    ax = make_3d_axis(ax_s=1, unit="m")
-    plot_transform(ax=ax, s=0.5, name="base_frame")  # basis
-    if isinstance(T, list):
-        for i, t in enumerate(T):
-            if names is not None:
-                name = names[i]
-            else:
-                name = f"frame_{i}"
-            plot_transform(ax=ax, A2B=t, s=0.5, name=name)
-    else:
-        plot_transform(ax=ax, A2B=T, s=0.5, name="frame")
-    plt.tight_layout()
-    plt.show()
-
-
 def sampling_test():
     """
     does sample in pi and use find_alt_config fill the rest or not ?
@@ -209,17 +375,13 @@ def determine_quadrant():
 
     box1 = np.array([[-np.pi, 0], [0, np.pi]])
     p = np.array([-1, 1]).reshape(2, 1)
-    print(box1)
+    print("Box:", box1)
     print("Point:", p)
 
     min = box1[:, 0].reshape(2, 1)
-    print("min:", min)
     max = box1[:, 1].reshape(2, 1)
-    print("max:", max)
-    a = p > min
-    print(a)
-    b = p < max
-    print(b)
+    inside = np.all((p >= min) & (p <= max))
+    print("Is point inside box?", inside)
 
 
 def find_number_of_feasible_alternatives():
@@ -295,25 +457,58 @@ def find_number_of_feasible_alternatives():
     )
 
 
+def determine_number_of_edges_tsp():
+    n = 10
+    nedges = n * (n - 1) / 2
+    print("Number of edges in TSP with", n, "nodes is:", nedges)
+
+
+def determine_number_of_edges():
+    """
+    Determine number of edges in generalized traveling salesman problem.
+    """
+
+    def find_num_edges(numtasks, use_alt=False):
+        candidates = [8] * numtasks
+        numbdalts = 32
+        if use_alt:
+            candidates = [nc * numbdalts for nc in candidates]
+        totalnodes = sum(candidates)
+
+        a = totalnodes * (totalnodes - 1) / 2
+        b = [c * (c - 1) / 2 for c in candidates]
+        b = sum(b)
+        numedges = a - b
+        return int(numedges)
+
+    n = 10
+    na = find_num_edges(n, use_alt=False)
+    wa = find_num_edges(n, use_alt=True)
+    numtasks = np.arange(1, 100)
+    can_no_alt = [find_num_edges(nt, use_alt=False) for nt in numtasks]
+    can_with_alt = [find_num_edges(nt, use_alt=True) for nt in numtasks]
+    plt.plot(numtasks, can_no_alt, "b-", label="No alternatives")
+    plt.plot(numtasks, can_with_alt, "r-", label="With alternatives")
+    plt.show()
+
+
 if __name__ == "__main__":
-    while True:
-        func = [
-            explore_nullspace,
-            eaik_analytical_solution_dh_ur5,
-            eaik_analytical_solution_urdf,
-            eaik_analytical_solution_dh_ur5e,
-            sampling_test,
-            determine_quadrant,
-            find_number_of_feasible_alternatives,
-        ]
+    from util import option_runner
 
-        for i, f in enumerate(func, start=1):
-            print(f"{i}: {f.__name__}")
-
-        arg = input("Enter argument number (` to exit): ")
-
-        if arg == "`":
-            print("Exiting...")
-            break
-        elif arg.isdigit() and 1 <= int(arg) <= len(func):
-            func[int(arg) - 1]()
+    func = [
+        jacobian_two_joints,
+        jacobian_three_joints,
+        jacobian_six_joints,
+        jacobian_three_joints_unit_test,
+        jacobian_six_joints_unit_test,
+        explore_nullspace,
+        eaik_analytical_solution_dh_ur5,
+        eaik_analytical_solution_urdf,
+        eaik_analytical_solution_dh_ur5e,
+        sampling_test,
+        determine_quadrant,
+        find_number_of_feasible_alternatives,
+        determine_number_of_edges_tsp,
+        determine_number_of_edges,
+    ]
+    option_runner(func)
